@@ -1,0 +1,20 @@
+#Auther Vaibhav Vaidya
+
+#Incremental Load
+inc_tbl = sqlContext.read.format('jdbc').options(
+          url='jdbc:mysql://database-1.cydjcftembsf.us-east-1.rds.amazonaws.com/project',
+          driver='com.mysql.jdbc.Driver',
+          query='select * from check_in where substr(date,1,10) = date(curdate())',
+          user='admin',
+          password='password').load()
+      
+      
+split_col = f.split(inc_tbl['date'], ' ')
+
+df_check1 = inc_tbl.withColumn('visit_date', f.when(split_col.getItem(0) == "", split_col.getItem(1)).otherwise(split_col.getItem(0)))
+
+df_check1 = df_check1.withColumn('time', f.when(split_col.getItem(0) == "", split_col.getItem(2)).otherwise(split_col.getItem(1)))
+
+df_checkin = df_check1.drop('date')
+
+df_checkin.write.save("s3a://group2-datalake//clean_data//yelp_checkin", format="orc")
